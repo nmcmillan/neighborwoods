@@ -11,7 +11,7 @@ public class Restaurants implements Data {
 	private String name;
 	private Location location;
 	private Address address;
-	private int yelpStars;
+	private int yelpRating;
 	private int localRecommendations;
 	private enum COST {
 		CHEAP,
@@ -76,17 +76,17 @@ public class Restaurants implements Data {
 	}
 
 	/**
-	 * @return the yelpStars
+	 * @return the yelpRating
 	 */
 	public int getYelpStars() {
-		return yelpStars;
+		return yelpRating;
 	}
 
 	/**
-	 * @param yelpStars the yelpStars to set
+	 * @param yelpRating the yelpRating to set
 	 */
 	public void setYelpStars(int yelpStars) {
-		this.yelpStars = yelpStars;
+		this.yelpRating = yelpStars;
 	}
 
 	/**
