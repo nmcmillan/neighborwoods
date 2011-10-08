@@ -5,18 +5,23 @@ import java.util.Vector;
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.UriMatcher;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteDatabase.CursorFactory;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.provider.BaseColumns;
+import android.text.TextUtils;
 import android.util.Log;
 
 public class NeighborwoodsProvider extends ContentProvider {
 
 	public final String LOG_TAG = getClass().getCanonicalName();
-	public static final Uri CONTENT_URI = Uri.parse("content://com.woods.storage.restaurantprovider");
+	public static final Uri CONTENT_URI = Uri.parse("content://com.woods.storage.neighborwoodsprovider");
+	
+	public static final String AUTHORITY = NeighborwoodsProvider.class.getPackage().getName() + ".provider";
 	
 	private static final String DATABASE_FILE_NAME = "neighborwoods.sqlite";
 	private static final int DATABASE_VERSION = 1;
@@ -32,6 +37,16 @@ public class NeighborwoodsProvider extends ContentProvider {
 	
 	private SqlHelper sqlHelper;
 
+	private static final int URI_RESTAURANTS = 0;
+	private static final int URI_RESTAURANTS_ID = 1;
+	
+	// Set up the URI matcher
+	private static final UriMatcher sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
+	static {
+		sUriMatcher.addURI(AUTHORITY, "restaurants", URI_RESTAURANTS);
+		sUriMatcher.addURI(AUTHORITY, "restaurants/#", URI_RESTAURANTS_ID);
+	}
+	
 	@Override
 	public int delete(Uri arg0, String arg1, String[] arg2) {
 		// TODO Auto-generated method stub
@@ -55,14 +70,14 @@ public class NeighborwoodsProvider extends ContentProvider {
 	 */
 	@Override
 	public boolean onCreate() {
-		SqlHelper sql = new SqlHelper(getContext(),"",null,0);
+		sqlHelper = new SqlHelper(getContext(),DATABASE_FILE_NAME,null,0);
 		return false;
 	}
 	
 	private class SqlHelper extends SQLiteOpenHelper {
 
 		public SqlHelper(Context context, String name, CursorFactory factory, int version) {
-			super(context, DATABASE_FILE_NAME, null, DATABASE_VERSION);
+			super(context, name, null, DATABASE_VERSION);
 		}
 		
 		@Override
@@ -87,23 +102,43 @@ public class NeighborwoodsProvider extends ContentProvider {
 			Log.d(LOG_TAG,"Creating restaurants table.");
 			db.execSQL("CREATE TABLE " + RESTAURANTS_TABLE + " (" +
 					RestaurantsColumns._ID + "  INTEGER PRIMARY KEY," +
-					RestaurantsColumns.NAME + " TEXT," + 
+					RestaurantsColumns.RESTAURANT_NAME + " TEXT," + 
 					RestaurantsColumns.LOCATION + " BLOB," + 
 					RestaurantsColumns.PHONE + " INTEGER," +
 					RestaurantsColumns.ADDRESS_STREET + " TEXT," +
 					RestaurantsColumns.ADDRESS_NUMBER + " INTEGER," +
 					RestaurantsColumns.RATING + " REAL," + 
 					RestaurantsColumns.TYPE + " TEXT"  + 
-					RestaurantsColumns.LOCAL_RECOMMENDATIONS + ");");				
+					RestaurantsColumns.LOCAL_RECOMMENDATIONS + " INTEGER"+ ");");				
 		}
 		
 	}
 
 	@Override
-	public Cursor query(Uri uri, String[] projection, String selection,
-			String[] selectionArgs, String sortOrder) {
-		// TODO Auto-generated method stub
-		return null;
+	public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
+		String order;
+		SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+		Cursor c;
+		SQLiteDatabase db = sqlHelper.getReadableDatabase();;
+		
+		switch(sUriMatcher.match(uri)){
+		case URI_RESTAURANTS:
+			Log.d(LOG_TAG, "query for restaurants");
+			if (TextUtils.isEmpty(sortOrder)) {
+	            order = RestaurantsColumns.DEFAULT_SORT_ORDER;
+	        } else {
+	            order = sortOrder;
+	        }
+	        
+	        // Get the database and run the query
+	        c = qb.query(db, projection, selection, selectionArgs, null, null, order);
+
+	        // Tell the cursor what uri to watch, so it knows when its source data changes
+	        c.setNotificationUri(getContext().getContentResolver(), uri);
+	        return c;
+	    default:
+	    	throw new IllegalArgumentException("Unknown URI : " + uri.toString());
+		}
 	}
 
 	@Override
@@ -114,7 +149,10 @@ public class NeighborwoodsProvider extends ContentProvider {
 	}
 	
 	public static final class RestaurantsColumns implements BaseColumns{
-		public static final String NAME = "name";
+		public static final Uri CONTENT_URI = Uri.parse("content://" + AUTHORITY + "/restaurants");
+		public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.neighborwoods.drugs";
+		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.neighborwoods.drug";
+		public static final String RESTAURANT_NAME = "restaurant_name";
 		public static final String ADDRESS_STREET = "address_street";
 		public static final String ADDRESS_NUMBER = "address_number";
 		public static final String LOCATION = "location";
@@ -122,6 +160,7 @@ public class NeighborwoodsProvider extends ContentProvider {
 		public static final String PHONE = "phone";
 		public static final String RATING = "rating";
 		public static final String LOCAL_RECOMMENDATIONS = "local_recs";
+		public static final String DEFAULT_SORT_ORDER = RESTAURANT_NAME + " DESC";
 	}
 	
 }
