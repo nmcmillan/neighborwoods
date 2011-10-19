@@ -5,7 +5,7 @@ import android.database.Cursor;
 import android.location.Address;
 import android.location.Location;
 
-public class Restaurants implements Data {
+public class Restaurant implements Data {
 
 	private int _id;
 	private String name;
